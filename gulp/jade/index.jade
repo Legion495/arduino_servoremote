@@ -11,12 +11,25 @@ html
     script(src='./main.min.js')
   body
     .container
-      ul
-        li X: #[span#x 0]
-        li Y: #[span#y 0]
-        li SteerL: #[span#steerl 0]
-        li SteerR: #[span#steerr 0] 
-        li SpeedL: #[span#speedl 0]
-        li SpeedR: #[span#speedr 0]
-        li Result L: #[span#resl 0]
-        li Result R: #[span#resr 0]
+      table
+        tr
+          td Steer L:
+          td #[span#steerl 0.00]
+        tr
+          td Steer R:
+          td #[span#steerr 0.00]
+        tr #[td #[br]]
+        tr
+          td Speed L:
+          td #[span#speedl 0.00]
+        tr
+          td Speed R:
+          td #[span#speedr 0.00]
+        tr #[td #[br]]
+        tr
+          td Result L:
+          td #[span#resl 0.00]
+        tr
+          td Result R:
+          td #[span#resr 0.00]
+    button MOTOR STATE

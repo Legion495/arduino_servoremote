@@ -1,0 +1,16 @@
+{
+  "devDependencies": {
+    "gulp": "*",
+    "gulp-cssnano": "*",
+    "gulp-gzip": "*",
+    "gulp-jade": "*",
+    "gulp-rename": "*",
+    "gulp-stylus": "*",
+    "gulp-uglify": "*"
+  },
+  "scripts": {
+    "gulp": "gulp dev",
+    "install": "gulp build"
+  },
+  "private": true
+}

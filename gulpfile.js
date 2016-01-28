@@ -3,7 +3,6 @@ var cssnano   = require('gulp-cssnano');
 var gzip      = require('gulp-gzip');
 var jade      = require('gulp-jade');
 var rename    = require('gulp-rename');
-var stylus    = require('gulp-stylus');
 var uglify    = require('gulp-uglify');
 
 gulp.task("css", function() {

@@ -1,6 +1,7 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
+#include <FS.h>
 #include <Servo.h>
 #include <WiFiClient.h>
 
@@ -23,22 +24,65 @@ Servo MotorRightServo;
 
 int freq_l = 1600;
 int freq_r = 1600;
+bool state = false;
 
-void handleNotFound() {
-  String message = "";
-  message += "URI: ";
-  message += server.uri();
-  message += "\nMethod: ";
-  message += (server.method() == HTTP_GET) ? "GET" : "POST";
-  message += "\nArguments: ";
-  message += server.arg(0);
-  message += "\n";
-
-  for(uint8_t i = 0; i < server.args(); i++ ) {
-    message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
+String formatBytes(size_t bytes) {
+  if (bytes < 1024) {
+    return String(bytes) + "B";
+  } else if (bytes < (1024 * 1024)) {
+    return String(bytes / 1024.0) + "KB";
+  } else if (bytes < (1024 * 1024 * 1024)) {
+    return String(bytes / 1024.0 / 1024.0) + "MB";
+  } else {
+    return String(bytes / 1024.0 / 1024.0 / 1024.0) + "GB";
   }
+}
 
-  server.send(404, "text/plain", message);
+String getContentType(String filename) {
+  if (server.hasArg("download"))
+    return "application/octet-stream";
+  else if (filename.endsWith(".htm"))
+    return "text/html";
+  else if (filename.endsWith(".html"))
+    return "text/html";
+  else if (filename.endsWith(".css"))
+    return "text/css";
+  else if (filename.endsWith(".js"))
+    return "application/javascript";
+  else if (filename.endsWith(".png"))
+    return "image/png";
+  else if (filename.endsWith(".gif"))
+    return "image/gif";
+  else if (filename.endsWith(".jpg"))
+    return "image/jpeg";
+  else if (filename.endsWith(".ico"))
+    return "image/x-icon";
+  else if (filename.endsWith(".xml"))
+    return "text/xml";
+  else if (filename.endsWith(".pdf"))
+    return "application/x-pdf";
+  else if (filename.endsWith(".zip"))
+    return "application/x-zip";
+  else if (filename.endsWith(".gz"))
+    return "application/x-gzip";
+  return "text/plain";
+}
+
+bool handleFileRead(String path) {
+  Serial.println("handleFileRead: " + path);
+  if (path.endsWith("/"))
+    path += "index.html";
+  String contentType = getContentType(path);
+  String pathWithGz = path + ".gz";
+  if (SPIFFS.exists(pathWithGz) || SPIFFS.exists(path)) {
+    if (SPIFFS.exists(pathWithGz))
+      path += ".gz";
+    File file = SPIFFS.open(path, "r");
+    size_t sent = server.streamFile(file, contentType);
+    file.close();
+    return true;
+  }
+  return false;
 }
 
 float per2ppm(float perc) {
@@ -52,21 +96,51 @@ float per2ppm(float perc) {
 }
 
 void handleCtrl() {
-  float perc_l = server.arg(0).toFloat();
-  float perc_r = server.arg(1).toFloat();
+  if(server.argName(0).equals("l") == true && server.argName(1).equals("r") == true) {
+    float perc_l = server.arg(0).toFloat();
+    float perc_r = server.arg(1).toFloat();
 
-  freq_l = (int) per2ppm(perc_l);
-  freq_r = (int) per2ppm(perc_r*-1);
+    freq_l = (int) per2ppm(perc_l);
+    freq_r = (int) per2ppm(perc_r*-1);
 
-  server.send(200);
+    server.send(200);
+  } else if(server.argName(0).equals("state") == true) {
+    if(server.arg(0).equals("on") == true) {
+      state = true;
+      MotorLeftServo.attach(MOTOR_LEFT_PIN);
+      MotorRightServo.attach(MOTOR_RIGHT_PIN);
+      server.send(200);
+    } else if(server.arg(0).equals("off") == true) {
+      state = false;
+      MotorLeftServo.detach();
+      MotorRightServo.detach();
+      server.send(200);
+    } else { server.send(400); }
+  } else { server.send(400); }
 }
 
 void setup()
 {
   Serial.begin(115200);
+
+  SPIFFS.begin();
+
+  Dir dir = SPIFFS.openDir("/");
+
+  Serial.println();
+
+  while (dir.next()) {
+    String fileName = dir.fileName();
+    size_t fileSize = dir.fileSize();
+    Serial.println("FS File: %s, size: %s\n", fileName.c_str(), formatBytes(fileSize).c_str());
+  }
+
+  Serial.println();
+
   WiFi.begin(ssid, password);
 
-  Serial.println("connecting");
+  Serial.println("\nconnecting");
+
   while(WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
@@ -83,13 +157,12 @@ void setup()
   }
 
   server.on("/motor", handleCtrl);
-  server.onNotFound(handleNotFound);
+  server.onNotFound([]() {
+    if (!handleFileRead(server.uri()))
+    server.send(404, "text/plain", "FileNotFound");
+  });
   server.begin();
   Serial.println("HTTP server started");
-
-
-  MotorLeftServo.attach(MOTOR_LEFT_PIN);
-  MotorRightServo.attach(MOTOR_RIGHT_PIN);
 
   Serial.println("Setup Finished");
 }
@@ -97,6 +170,8 @@ void setup()
 void loop()
 {
   server.handleClient();
-  MotorLeftServo.writeMicroseconds(freq_l);
-  MotorRightServo.writeMicroseconds(freq_r);
+  if(state == true) {
+    MotorLeftServo.writeMicroseconds(freq_l);
+    MotorRightServo.writeMicroseconds(freq_r);
+  }
 }

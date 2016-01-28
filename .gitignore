@@ -1,4 +1,7 @@
 arduino/server/data/
 dist/
 node_modules/
+logs
+npm-debug.log*
+*.log
 *.tmp

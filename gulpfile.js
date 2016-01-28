@@ -6,15 +6,13 @@ var rename    = require('gulp-rename');
 var stylus    = require('gulp-stylus');
 var uglify    = require('gulp-uglify');
 
-var destination = "./dist/";
-
 gulp.task("css", function() {
   return gulp.src(["gulp/css/*.css"])
     .pipe(cssnano())
     .pipe(rename({suffix: ".min"}))
     .pipe(gulp.dest("./dist/"))
     .pipe(gzip({gzipOptions: {level: 9}}))
-    .pipe(gulp.dest("./arduino/data/"));
+    .pipe(gulp.dest("./arduino/server/data/"));
 });
 
 gulp.task("js", function() {
@@ -23,14 +21,14 @@ gulp.task("js", function() {
     .pipe(rename({suffix: ".min"}))
     .pipe(gulp.dest("./dist/"))
     .pipe(gzip({gzipOptions: {level: 9}}))
-    .pipe(gulp.dest("./arduino/data/"));
+    .pipe(gulp.dest("./arduino/server/data/"));
 });
 
 gulp.task("jade", function() {
   return gulp.src(["gulp/jade/*.jade"])
     .pipe(jade())
     .pipe(gulp.dest("./dist/"))
-    .pipe(gulp.dest("./arduino/data/"));
+    .pipe(gulp.dest("./arduino/server/data/"));
 });
 
 gulp.task("watch:css", ["css"], function() {

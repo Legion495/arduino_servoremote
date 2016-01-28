@@ -1,4 +1,4 @@
-arduino/data/
+arduino/server/data/
 dist/
 node_modules/
 *.tmp
